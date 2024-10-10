@@ -6,11 +6,21 @@ import (
 	repository "github.com/barisaydogdu/PostgreSQLwithGo/repository/user"
 )
 
+type UserServiceInterface interface {
+	UserActionService(typ string, method string, id int, firstName string, lastName string, number int, balance int) error
+	UserActions(method string, id int, firstName string, lastName string, number int, balance int) error
+	getAllUserService() error
+	getUserService(id int) error
+	createUserService(firstName string, lastName string, number int, balance int) error
+	updateUserService(id int, firstName string, lastName string, number int, balance int) error
+	deleteUserService(id int) error
+}
+
 type UserService struct {
 	repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
+func NewUserService(repo repository.UserRepository) UserServiceInterface {
 	return &UserService{repo: repo}
 }
 
