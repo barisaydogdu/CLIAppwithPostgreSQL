@@ -6,7 +6,7 @@ import (
 	repository "github.com/barisaydogdu/PostgreSQLwithGo/repository/user"
 )
 
-type UserServiceInterface interface {
+type UserService interface {
 	UserActionService(typ string, method string, id int, firstName string, lastName string, number int, balance int) error
 	UserActions(method string, id int, firstName string, lastName string, number int, balance int) error
 	getAllUserService() error
@@ -16,15 +16,15 @@ type UserServiceInterface interface {
 	deleteUserService(id int) error
 }
 
-type UserService struct {
+type userService struct {
 	repo repository.UserRepository
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{repo: repo}
 }
 
-func (us *UserService) UserActionService(typ string, method string, id int, firstName string, lastName string, number int, balance int) error {
+func (us *userService) UserActionService(typ string, method string, id int, firstName string, lastName string, number int, balance int) error {
 	switch typ {
 	case "user":
 		return us.UserActions(method, id, firstName, lastName, number, balance)
@@ -35,7 +35,7 @@ func (us *UserService) UserActionService(typ string, method string, id int, firs
 
 }
 
-func (us *UserService) UserActions(method string, id int, firstName string, lastName string, number int, balance int) error {
+func (us *userService) UserActions(method string, id int, firstName string, lastName string, number int, balance int) error {
 	switch method {
 	case "all":
 		return us.getAllUserService()
@@ -52,7 +52,7 @@ func (us *UserService) UserActions(method string, id int, firstName string, last
 	}
 }
 
-func (us *UserService) getAllUserService() error {
+func (us *userService) getAllUserService() error {
 	users, err := us.repo.GetAllUsers()
 	if err != nil {
 		log.Fatalf("Something went wrong with get all users %v", err)
@@ -62,7 +62,7 @@ func (us *UserService) getAllUserService() error {
 	return nil
 }
 
-func (us *UserService) getUserService(id int) error {
+func (us *userService) getUserService(id int) error {
 	user, err := us.repo.GetUserByID(id)
 	if err != nil {
 		log.Fatalf("Something went wrong with get user by ID %v", err)
@@ -72,7 +72,7 @@ func (us *UserService) getUserService(id int) error {
 	return nil
 }
 
-func (us *UserService) createUserService(firstName string, lastName string, number int, balance int) error {
+func (us *userService) createUserService(firstName string, lastName string, number int, balance int) error {
 	newUser := repository.User{
 		First_name: firstName,
 		Last_name:  lastName,
@@ -88,7 +88,7 @@ func (us *UserService) createUserService(firstName string, lastName string, numb
 	return nil
 }
 
-func (us *UserService) updateUserService(id int, firstName string, lastName string, number int, balance int) error {
+func (us *userService) updateUserService(id int, firstName string, lastName string, number int, balance int) error {
 	updatedUser := repository.User{
 		First_name: firstName,
 		Last_name:  lastName,
@@ -104,7 +104,7 @@ func (us *UserService) updateUserService(id int, firstName string, lastName stri
 	return nil
 }
 
-func (us *UserService) deleteUserService(id int) error {
+func (us *userService) deleteUserService(id int) error {
 	rowsAffedted, err := us.repo.DeleteUser(id)
 	if err != nil {
 		log.Fatalf("Something went wrong with delete user %d", err)

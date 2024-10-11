@@ -6,12 +6,12 @@ import (
 )
 
 type userHandler struct {
-	service *userservice.UserService
+	service userservice.UserService
 }
 
 func NewUserHandler(userSrv userservice.UserService) *cobra.Command {
 	s := &userHandler{
-		service: &userSrv,
+		service: userSrv,
 	}
 	var (
 		id        int

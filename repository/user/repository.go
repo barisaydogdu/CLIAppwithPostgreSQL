@@ -19,8 +19,8 @@ type UserRepository interface {
 }
 
 type userRepository struct {
-	Db  *sql.DB
 	ctx context.Context
+	Db  *sql.DB
 }
 
 func NewUserRepository(ctx context.Context, db *sql.DB) UserRepository {
