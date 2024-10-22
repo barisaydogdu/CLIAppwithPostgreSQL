@@ -3,22 +3,22 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/barisaydogdu/PostgreSQLwithGo/handlers"
 	pstgr "github.com/barisaydogdu/PostgreSQLwithGo/infrastructure/postgre"
+
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		fmt.Errorf("Error loading .env file %v", err)
 	}
 
-	conn, err := pstgr.ConnectToDB()
+	conn, err := pstgr.ConnectToDB(pstgr.NewEnvDbConfig().ConnString())
 	if err != nil {
-		log.Fatal(err)
+		fmt.Errorf("There is something error with connecting database %v", err)
 	}
 	defer conn.Close()
 

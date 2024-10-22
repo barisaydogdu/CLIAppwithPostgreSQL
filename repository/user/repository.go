@@ -1,21 +1,29 @@
-package repository
+// repository sdfsfdsdfdsfd
+package user
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
+
+	userdomain "github.com/barisaydogdu/PostgreSQLwithGo/domain/user"
 )
 
+// UserRepository sasdadsasdasdad
 type UserRepository interface {
-	GetAllUsers() ([]*User, error)
-	GetUserByID(id int) (*User, error)
-	InsertUser(user *User) (int64, error)
-	UpdateUser(usr *User, id int) (int, error)
-	DeleteUser(id int) (int64, error)
-	PrintUser(*User)
-	PrintUsers([]*User)
+	CreateUser(user *userdomain.User) error
+	Count() (int64, error)
+	CountRows(mp map[string]interface{}, id int64) (int64, error)
+	GetAllUsers() ([]*userdomain.User, error)
+	GetUserByID(id int64) (*userdomain.User, error)
+	UpdateUser(usr *userdomain.User, id int64) error
+	DeleteUser(id int64) error
+	PrintUser(*userdomain.User)
+	PrintUsers([]*userdomain.User)
 }
 
 type userRepository struct {
@@ -30,21 +38,99 @@ func NewUserRepository(ctx context.Context, db *sql.DB) UserRepository {
 	}
 }
 
-func (u *userRepository) GetAllUsers() ([]*User, error) {
-	rows, err := u.Db.Query("SELECT * FROM account")
+// GetAllUsers sdfsfdsdfsdfsdfsdffds
+// sdadsasd
+func (u *userRepository) CreateUser(usr *userdomain.User) error {
+	inctx, cancel := context.WithTimeout(u.ctx, 5*time.Second)
+	defer cancel()
+	err := u.Db.QueryRowContext(inctx, "INSERT INTO account (first_name,last_name,number,balance,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+		usr.FirstName, usr.LastName, usr.Number, usr.Balance, time.Now()).Scan(&usr.Id)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Add User: %v", err)
+		return err
+	}
+
+	log.Println("Succesfully created a user")
+
+	return nil
+}
+
+func (u *userRepository) Count() (int64, error) {
+	count, err := u.count(nil, 0)
+	if err != nil {
+		//
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (u *userRepository) CountRows(mp map[string]interface{}, id int64) (int64, error) {
+	count, err := u.count(mp, id)
+	if err != nil {
+		//
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (u *userRepository) count(mp map[string]interface{}, id int64) (int64, error) {
+	var wc string
+	var args []interface{}
+	if mp != nil {
+		val, ok := mp["columnName"]
+		if !ok {
+			return 0, errors.New("invaild name first if")
+		}
+
+		columnName := val.(string)
+
+		// if columnName != "first_name" || columnName != "last_name" || columnName != "number" || columnName != "balance" {
+		// 	return 0, errors.New("invaild name")
+		// }
+
+		if !(columnName == "id" || columnName == "first_name" || columnName == "last_name" || columnName == "number" || columnName == "balance") {
+			return 0, errors.New("invalid name second if")
+		}
+
+		value, ok := mp["value"]
+		if !ok {
+			return 0, errors.New("invaild name with value")
+		}
+		wc = "WHERE " + columnName + " = $" + strconv.Itoa(len(args)+1)
+		args = append(args, value)
+	} else if id > 0 {
+		wc = "WHERE id = $" + strconv.Itoa(len(args)+1)
+	}
+	query := "SELECT COUNT (*) FROM account " + wc
+
+	var count int64
+	if err := u.Db.QueryRow(query, args...).Scan(&count); err != nil {
+		return 0, fmt.Errorf("query database error %v", err)
+	}
+
+	return count, nil
+}
+
+func (u *userRepository) GetAllUsers() ([]*userdomain.User, error) {
+	rows, err := u.Db.Query("SELECT * FROM account")
+
+	if err != nil {
+		fmt.Errorf("There is something error with get all users %v", err)
 	}
 	defer rows.Close()
 
-	var users []*User
+	var users []*userdomain.User
 
 	for rows.Next() {
-		var user User
-		if err := rows.Scan(&user.Id, &user.First_name, &user.Last_name, &user.Number, &user.Balance, &user.Created_at); err != nil {
+		var user userdomain.User
+		if err := rows.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Number, &user.Balance, &user.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %v", err)
 		}
+
 		users = append(users, &user)
+
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error occured during rows iteration: %w", err)
@@ -53,12 +139,12 @@ func (u *userRepository) GetAllUsers() ([]*User, error) {
 	return users, nil
 }
 
-func (u *userRepository) GetUserByID(id int) (*User, error) {
+func (u *userRepository) GetUserByID(id int64) (*userdomain.User, error) {
 	row := u.Db.QueryRow("SELECT * FROM account WHERE id=$1", id)
 
-	var usr User
+	var usr userdomain.User
 
-	if err := row.Scan(&usr.Id, &usr.First_name, &usr.Last_name, &usr.Number, &usr.Balance, &usr.Created_at); err != nil {
+	if err := row.Scan(&usr.Id, &usr.FirstName, &usr.LastName, &usr.Number, &usr.Balance, &usr.CreatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no user found with ID %d", id)
 		}
@@ -70,52 +156,55 @@ func (u *userRepository) GetUserByID(id int) (*User, error) {
 	return &usr, nil
 }
 
-func (u *userRepository) InsertUser(usr *User) (int64, error) {
-	inctx, cancel := context.WithTimeout(u.ctx, 5*time.Second)
-	defer cancel()
-	var id int64
-	err := u.Db.QueryRowContext(inctx, "INSERT INTO account (first_name,last_name,number,balance,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-		usr.First_name, usr.Last_name, usr.Number, usr.Balance, time.Now()).Scan(&id)
+func (u *userRepository) UpdateUser(usr *userdomain.User, id int64) error {
+	result, err := u.Db.Exec("UPDATE account SET first_name=$1, last_name=$2, number=$3, balance=$4 WHERE id=$5",
+		usr.FirstName, usr.LastName, usr.Number, usr.Balance, id)
 	if err != nil {
-		log.Fatal("Add User: %v", err)
-	}
-	return id, nil
-}
-
-func (u *userRepository) DeleteUser(id int) (int64, error) {
-	result, err := u.Db.Exec("DELETE FROM account WHERE id= $1", id)
-	if err != nil {
-		log.Fatalf("Error when delete a user: %v", err)
+		log.Printf("Error when updating a user: %v\n", err)
+		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return 0, fmt.Errorf("Delete User: %v", err)
+		return fmt.Errorf("update User: %v", err)
 	}
-	return rowsAffected, nil
+
+	if rowsAffected == 0 {
+		return errors.New("ftygdfgdsfs")
+	}
+
+	return err
 }
 
-func (u *userRepository) UpdateUser(usr *User, id int) (int, error) {
-	err := u.Db.QueryRow("UPDATE account SET first_name=$1, last_name=$2, number=$3, balance=$4 WHERE id=$5 RETURNING id",
-		usr.First_name, usr.Last_name, usr.Number, usr.Balance, id).Scan(&id)
+func (u *userRepository) DeleteUser(id int64) error {
+	result, err := u.Db.Exec("DELETE FROM account WHERE id= $1", id)
 	if err != nil {
-		log.Fatalf("Error when updating a user: %v", err)
+		fmt.Errorf("Error when delete a user: %v", err)
 	}
-	return id, err
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete User: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("ftygdfgdsfs")
+	}
+
+	return nil
 }
 
-func (u *userRepository) PrintUsers(user []*User) {
+func (u *userRepository) PrintUsers(user []*userdomain.User) {
 	for _, usr := range user {
 		log.Printf("User ID: %d, Name: %s,LastName:%s Number: %d, Balance: %d, Created At: %s",
-			usr.Id, usr.First_name, usr.Last_name, usr.Number, usr.Balance, usr.Created_at.Format("2006-01-02 15:04:05"))
+			usr.Id, usr.FirstName, usr.LastName, usr.Number, usr.Balance, usr.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 }
-
-func (u *userRepository) PrintUser(user *User) {
+func (u *userRepository) PrintUser(user *userdomain.User) {
 	if user == nil {
 		log.Println("User not found")
 		return
 	}
 	log.Printf("User ID: %d, Name: %s %s, Number: %d, Balance: %d, Created At: %s",
-		user.Id, user.First_name, user.Last_name, user.Number, user.Balance, user.Created_at.Format("2006-01-02 15:04:05"))
+		user.Id, user.FirstName, user.LastName, user.Number, user.Balance, user.CreatedAt.Format("2006-01-02 15:04:05"))
 }

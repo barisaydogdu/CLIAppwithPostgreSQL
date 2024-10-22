@@ -3,9 +3,8 @@ package cli
 import (
 	"context"
 
-	"github.com/spf13/cobra"
-
 	userService "github.com/barisaydogdu/PostgreSQLwithGo/service/user"
+	"github.com/spf13/cobra"
 )
 
 type CLI interface {
@@ -15,11 +14,11 @@ type CLI interface {
 
 type cli struct {
 	ctx         context.Context
-	userService userService.UserService
+	userService userService.Service
 	root        *cobra.Command
 }
 
-func NewCLI(ctx context.Context, userSrv userService.UserService) CLI {
+func NewCLI(ctx context.Context, userSrv userService.Service) CLI {
 	c := &cli{
 		ctx:         ctx,
 		userService: userSrv,

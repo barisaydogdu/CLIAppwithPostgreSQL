@@ -18,14 +18,13 @@ type Handlers interface {
 type handlers struct {
 	ctx            context.Context
 	userRepository userRepository.UserRepository
-	userService    userService.UserService
+	userService    userService.Service
 	cli            cli.CLI
 }
 
 func NewHandlers(ctx context.Context, db *sql.DB) Handlers {
 	userRepo := userRepository.NewUserRepository(ctx, db)
 	userSrv := userService.NewUserService(userRepo)
-
 	return &handlers{
 		ctx:            ctx,
 		userRepository: userRepo,
